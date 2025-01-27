@@ -7,4 +7,4 @@ docker build --no-cache -t heic-converter .
 
 To run this Docker:
 
-docker run --name heic-converter -p 5000:5000 
+docker run --name heic-converter -p 5000:5000 heic-converter:latest
