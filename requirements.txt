@@ -1,0 +1,6 @@
+flask==3.0.0
+werkzeug==3.0.6
+pillow-heif==0.13.1
+Pillow==10.3.0
+tqdm==4.66.1
+setuptools>=69.2.0

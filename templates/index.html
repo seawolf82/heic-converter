@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>HEIC to JPG Converter</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .progress {
+            width: 100%;
+            background-color: #f0f0f0;
+            border-radius: 4px;
+            margin: 8px 0;
+        }
+        .progress-bar {
+            height: 20px;
+            background-color: #4CAF50;
+            border-radius: 4px;
+            transition: width 0.5s ease-in-out;
+        }
+        .file-item {
+            margin: 10px 0;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 10px 0;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        input[type="file"] {
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>HEIC to JPG Converter</h1>
+    <input type="file" id="fileInput" multiple accept=".heic" />
+    <button onclick="uploadFiles()">Upload and Convert</button>
+    <div id="fileList"></div>
+    <button onclick="downloadFiles()" id="downloadButton" style="display: none;">Download Converted Images</button>
+
+    <script>
+        let uploadedFiles = [];
+
+        function uploadFiles() {
+            const input = document.getElementById('fileInput');
+            const formData = new FormData();
+            
+            for (const file of input.files) {
+                formData.append('files[]', file);
+            }
+            
+            fetch('/upload', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                uploadedFiles = data.files;
+                displayFiles();
+                startConversion();
+            });
+        }
+
+        function displayFiles() {
+            const fileList = document.getElementById('fileList');
+            fileList.innerHTML = '';
+            
+            uploadedFiles.forEach(filename => {
+                const fileItem = document.createElement('div');
+                fileItem.className = 'file-item';
+                fileItem.innerHTML = `
+                    <div>${filename}</div>
+                    <div class="progress">
+                        <div class="progress-bar" style="width: 0%"></div>
+                    </div>
+                `;
+                fileList.appendChild(fileItem);
+            });
+        }
+
+        function startConversion() {
+            fetch('/convert', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    files: uploadedFiles
+                })
+            });
+            
+            updateStatus();
+        }
+
+        function updateStatus() {
+            fetch('/status')
+                .then(response => response.json())
+                .then(status => {
+                    let allCompleted = true;
+                    const fileItems = document.getElementsByClassName('file-item');
+                    
+                    uploadedFiles.forEach((filename, index) => {
+                        const progressBar = fileItems[index].querySelector('.progress-bar');
+                        switch(status[filename]) {
+                            case 'pending':
+                                progressBar.style.width = '0%';
+                                allCompleted = false;
+                                break;
+                            case 'converting':
+                                progressBar.style.width = '50%';
+                                allCompleted = false;
+                                break;
+                            case 'completed':
+                                progressBar.style.width = '100%';
+                                break;
+                            case 'error':
+                                progressBar.style.backgroundColor = '#ff0000';
+                                break;
+                        }
+                    });
+                    
+                    if (allCompleted) {
+                        document.getElementById('downloadButton').style.display = 'block';
+                    } else {
+                        setTimeout(updateStatus, 1000);
+                    }
+                });
+        }
+
+        function downloadFiles() {
+            window.location.href = '/download';
+        }
+    </script>
+</body>
+</html>
